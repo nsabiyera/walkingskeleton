@@ -34,6 +34,9 @@ end
 desc "builds and deploys website to directories iis express will use to run app"
 task :default => [:build, :deploy]
 
+desc "run ui automation tests"
+task :ui => [:build, :ui_tests]
+
 desc "builds the solution"
 task :build => :rake_dot_net_initialize do
   @sln.build @solution_name 
@@ -74,6 +77,11 @@ end
 desc "synchronizes a file specfied to the website deployment directory"
 task :sync, [:file] => :rake_dot_net_initialize do |t, args|
   @file_sync.sync args[:file]
+end
+
+desc "runs ui tests (without building)"
+task :ui_tests do
+  sh "__NAME__.UITests\\bin\\Debug\\__NAME__.UITests.exe"
 end
 
 def reset_db
