@@ -1,0 +1,9 @@
+c:\Users\juwilliams\Desktop\Personal\test\walkingskeleton\__NAME__.Tests\bin\Debug\__NAME__.Tests.dll.config
+c:\Users\juwilliams\Desktop\Personal\test\walkingskeleton\__NAME__.Tests\bin\Debug\__NAME__.Tests.dll
+c:\Users\juwilliams\Desktop\Personal\test\walkingskeleton\__NAME__.Tests\bin\Debug\__NAME__.Tests.pdb
+c:\Users\juwilliams\Desktop\Personal\test\walkingskeleton\__NAME__.Tests\bin\Debug\NSpec.dll
+c:\Users\juwilliams\Desktop\Personal\test\walkingskeleton\__NAME__.Tests\bin\Debug\__NAME__.dll
+c:\Users\juwilliams\Desktop\Personal\test\walkingskeleton\__NAME__.Tests\bin\Debug\__NAME__.pdb
+c:\Users\juwilliams\Desktop\Personal\test\walkingskeleton\__NAME__.Tests\obj\Debug\ResolveAssemblyReference.cache
+c:\Users\juwilliams\Desktop\Personal\test\walkingskeleton\__NAME__.Tests\obj\Debug\__NAME__.Tests.dll
+c:\Users\juwilliams\Desktop\Personal\test\walkingskeleton\__NAME__.Tests\obj\Debug\__NAME__.Tests.pdb

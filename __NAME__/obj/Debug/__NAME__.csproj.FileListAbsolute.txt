@@ -1,0 +1,5 @@
+c:\Users\juwilliams\Desktop\Personal\test\walkingskeleton\__NAME__\bin\__NAME__.dll
+c:\Users\juwilliams\Desktop\Personal\test\walkingskeleton\__NAME__\bin\__NAME__.pdb
+c:\Users\juwilliams\Desktop\Personal\test\walkingskeleton\__NAME__\obj\Debug\ResolveAssemblyReference.cache
+c:\Users\juwilliams\Desktop\Personal\test\walkingskeleton\__NAME__\obj\Debug\__NAME__.dll
+c:\Users\juwilliams\Desktop\Personal\test\walkingskeleton\__NAME__\obj\Debug\__NAME__.pdb
