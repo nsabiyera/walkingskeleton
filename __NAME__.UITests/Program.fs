@@ -10,7 +10,7 @@ let reset _ =
     seed.All() |> ignore
     () 
 
-before <- reset
+before(reset)
 
 test(fun _ ->
     describe "hello world"
