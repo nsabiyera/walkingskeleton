@@ -1,94 +1,201 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
-using System.Dynamic;
 using System.Runtime.CompilerServices;
 using System.Reflection;
 
 namespace Oak
 {
-    public class DynamicToJson
+    public class DeserializationSession
     {
-        public static string Convert(dynamic o)
+        public List<object> Visited = new List<object>();
+        public bool ProcessingList;
+        public Dictionary<object, string> Relatives = new Dictionary<object, string>();
+    }
+
+    public class Result
+    {
+        public bool ShouldStringify;
+        public dynamic Value;
+    }
+
+    public class CicularReference { }
+
+    public class Item
+    {
+        public bool IsCircular()
         {
-            if (o is IEnumerable<dynamic>) return Convert(o as IEnumerable<dynamic>);
-
-            if (o is Prototype) return Convert(o as IDictionary<string, object>);
-
-            if (o is Gemini) return Convert(o.HashOfProperties());
-
-            if (IsJsonString(o) || IsJsonNumeric(o) || IsBool(o)) return Stringify(o);
-
-            return Convert((o as object).ToPrototype());
+            return Value is CicularReference;
         }
 
-        public static string Convert(IEnumerable<dynamic> o)
+        public DeserializationSession Session;
+        public dynamic Self;
+        public bool MemberOfList;
+        public Dictionary<string, Func<dynamic>> Todo;
+        public bool Enumerated;
+        public bool AlreadyFound;
+        public dynamic Value { get; set; }
+        public void Resolve()
         {
-            return "[ " + string.Join(", ", o.Select(s => Convert(s as object))) + " ]";
+            EnumerateProperties();
+
+            if (Session.Relatives.ContainsKey(Self)) Value = Session.Relatives[Self];
+
+            else if (AlreadyFound) Value = new CicularReference();
+
+            else if (Value == null && Todo == null) Value = "";
+
+            else if (Todo != null)
+            {
+                var values = new List<string>();
+
+                foreach (var kvp in Todo)
+                {
+                    var temp = kvp.Value.Invoke();
+
+                    if (temp is CicularReference || temp.Value is CicularReference) continue;
+
+                    values.Add(Stringify(kvp.Key) + ": " + Stringify(temp));
+                }
+
+                if (values.Any()) Value = "{ " + string.Join(", ", values) + " }";
+            }
         }
 
-        public static string Convert(IDictionary<string, object> attributes)
+        public Item(dynamic o, DeserializationSession session, bool memberOfList = false)
         {
-            return "{ " + StringifyAttributes(attributes) + " }";
+            Self = o;
+            Session = session;
+            MemberOfList = memberOfList;
         }
 
-        private static string StringifyAttributes(IDictionary<string, object> attributes)
+        void ResultsFor(IDictionary<string, object> attributes)
         {
-            return string.Join(", ", attributes.Where(CanConvertValue).Select(StringifyAttribute));
+            foreach (var kvp in attributes)
+            {
+                var result = ResultFor(kvp);
+
+                if (result != null) Todo.Add(kvp.Key, result);
+            }
         }
 
-        private static string StringifyAttribute(KeyValuePair<string, object> kvp)
+        Func<dynamic> ResultFor(KeyValuePair<string, object> attribute)
         {
-            return Stringify(kvp.Key) + ": " + Stringify(kvp.Value);
+            if (IsValueType(attribute.Value))
+            {
+                return () => new Result { ShouldStringify = true, Value = attribute.Value };
+            }
+
+            return () =>
+            {
+                var todo = new Item(attribute.Value, Session, MemberOfList);
+
+                todo.EnumerateProperties();
+
+                todo.Resolve();
+
+                var v = todo.Value;
+
+                if (v == null || v is CicularReference) return new CicularReference();
+
+                Cache(attribute, v);
+
+                return new Result { ShouldStringify = false, Value = v };
+            };
         }
 
-        private static List<dynamic> ToList(dynamic enumerable)
+        private void Cache(KeyValuePair<string, object> attribute, string v)
         {
-            return (enumerable as IEnumerable<dynamic>).ToList();
+            if (MemberOfList && !Session.Relatives.ContainsKey(attribute.Value)) Session.Relatives.Add(attribute.Value, v);
         }
 
-        public static string Stringify(dynamic o)
+        public void EnumerateProperties()
         {
-            if (IsNull(o)) return "null";
+            if (Enumerated) return;
 
-            if (o is string) return "\"" + Escape(o) + "\"";
+            if (Session.Visited.Contains(Self))
+            {
+                AlreadyFound = true;
+                return;
+            }
 
-            if (IsJsonString(o)) return "\"" + o + "\"";
+            if (IsValueType(Self))
+            {
+                Value = Stringify(Self);
+                Todo = null;
+                Enumerated = true;
+                return;
+            }
 
-            if (IsJsonNumeric(o)) return o.ToString();
+            Todo = new Dictionary<string, Func<dynamic>>();
 
-            if (IsList(o)) return Convert(o as IEnumerable<dynamic>);
+            if (Self is IEnumerable<dynamic>)
+            {
+                if (Session.ProcessingList == true)
+                {
+                    Enumerated = false;
+                    return;
+                }
 
-            if (IsBool(o)) return o.ToString().ToLower();
+                Session.ProcessingList = true;
+                var todos = new List<Item>();
 
-            return Convert(o as object);
+                foreach (var item in (Self as IEnumerable<dynamic>))
+                {
+                    Item newItem = new Item(item, Session, true);
+                    newItem.EnumerateProperties();
+                    todos.Add(newItem);
+                }
+
+                Session.ProcessingList = false;
+
+                todos.ForEach(s => s.Resolve());
+
+                if (todos.All(s => s.IsCircular())) Value = new CicularReference();
+
+                else Value = "[ " + string.Join(", ", todos.Where(s => !s.IsCircular()).Select(x => x.Value)) + " ]";
+
+                Todo = null;
+            }
+            else if (Self is Prototype)
+            {
+                Session.Visited.Add(Self);
+                ResultsFor(Self);
+            }
+            else if (Self is Gemini)
+            {
+                Session.Visited.Add(Self);
+                ResultsFor(Self.HashOfProperties());
+            }
+            else
+            {
+                Session.Visited.Add(Self);
+                ResultsFor((Self as object).ToPrototype());
+            }
+
+            Enumerated = true;
         }
 
-        private static string Escape(string o)
+        private static bool IsValueType(dynamic o)
         {
-            return o.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "\\r").Replace("\n", "\\n");
+            return IsJsonString(o) || IsJsonNumeric(o) || IsBool(o);
         }
 
         public static bool IsJsonString(dynamic o)
         {
-            return o is string || 
-                o.GetType() == typeof(DateTime) || 
-                o.GetType() == typeof(Char) || 
+            return o == null ||
+                o is string ||
+                o.GetType() == typeof(DateTime) ||
+                o.GetType() == typeof(Char) ||
                 o.GetType() == typeof(Guid);
         }
 
         public static bool IsJsonNumeric(dynamic o)
         {
-            return o.GetType() == typeof(Decimal) || 
-                o.GetType() == typeof(int) || 
-                o.GetType() == typeof(long) || 
+            return o.GetType() == typeof(Decimal) ||
+                o.GetType() == typeof(int) ||
+                o.GetType() == typeof(long) ||
                 o.GetType() == typeof(double);
-        }
-
-        public static bool IsList(dynamic o)
-        {
-            return o is IEnumerable<dynamic>;
         }
 
         public static bool IsBool(dynamic o)
@@ -96,19 +203,53 @@ namespace Oak
             return o.GetType() == typeof(bool);
         }
 
-        public static bool CanConvertValue(KeyValuePair<string, object> kvp)
+        public static string Stringify(dynamic o)
         {
-            return IsNull(kvp.Value) ||
-                   IsJsonString(kvp.Value) || 
-                   IsJsonNumeric(kvp.Value) || 
-                   IsList(kvp.Value) || 
-                   IsBool(kvp.Value) ||
-                   CanConvertObject(kvp.Value);
+            if (o is Result)
+            {
+                if (o.ShouldStringify == false) return o.Value;
+
+                if (o.Value is string) return "\"" + Escape(o.Value) + "\"";
+
+                return Stringify(o.Value);
+            }
+
+            if (IsNull(o)) return "null";
+
+            if (IsJsonString(o)) return "\"" + o + "\"";
+
+            if (IsJsonNumeric(o)) return o.ToString();
+
+            if (IsBool(o)) return o.ToString().ToLower();
+
+            return "\"" + Escape(o) + "\"";
         }
 
         private static bool IsNull(object value)
         {
             return value == null;
+        }
+
+        private static string Escape(string o)
+        {
+            return o.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "\\r").Replace("\n", "\\n");
+        }
+
+        public static bool IsList(dynamic o)
+        {
+            return o is IEnumerable<dynamic>;
+        }
+    }
+
+    public class DynamicToJson
+    {
+        public static string Convert(dynamic o)
+        {
+            var session = new DeserializationSession();
+            var item = new Item(o, session);
+            item.EnumerateProperties();
+            item.Resolve();
+            return item.Value;
         }
 
         public static bool CanConvertObject(dynamic o)
