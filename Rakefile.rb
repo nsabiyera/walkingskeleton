@@ -9,6 +9,7 @@ require './RakeDotNet/sln_builder.rb'
 require './RakeDotNet/file_sync.rb'
 require 'net/http'
 require 'yaml'
+require './scaffold.rb'
 
 task :rake_dot_net_initialize do
   yml = YAML::load File.open("dev.yml")
@@ -20,6 +21,8 @@ task :rake_dot_net_initialize do
   @website_deploy_directory_load_balanced_2 = yml["website_deploy_directory_load_balanced_2"]
   @solution_name = "#{ yml["solution_name"] }.sln"
   @mvc_project_directory = yml["mvc_project"]
+
+  @test_project = yml["test_project"]
   @test_dll = "./#{ yml["test_project"] }/bin/debug/#{ yml["test_project"] }.dll"
 
   @test_runner_path = yml["test_runner"]
