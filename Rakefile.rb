@@ -174,3 +174,11 @@ end
 def execute_sql database, sql, server
   puts `sqlcmd -d #{ database } -S #{ server } -Q \"#{ sql }\"`
 end
+
+desc "run ui automation tests"
+task :ui => [:build, :ui_tests]
+
+desc "runs ui tests (without building)"
+task :ui_tests do
+  sh "__NAME__.UITests\\bin\\Debug\\__NAME__.UITests.exe"
+end
