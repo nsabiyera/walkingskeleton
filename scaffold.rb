@@ -14,6 +14,8 @@ namespace :gen do
   task :model, [:name] => :rake_dot_net_initialize do |t, args|
     raise "name parameter required, example: rake gen:model[Blog]" if args[:name].nil?
 
+    verify_file_name args[:name]
+
     folder "Models"
     
     save model_template(args[:name]), "#{@mvc_project_directory}/Models/#{args[:name]}.cs"
@@ -24,6 +26,8 @@ namespace :gen do
   desc "adds a dynamic repository class to your mvc project, example: rake gen:repo[Blogs]"
   task :repo, [:name] => :rake_dot_net_initialize do |t, args|
     raise "name parameter required, example: rake gen:repository[Blogs]" if args[:name].nil?
+
+    verify_file_name args[:name]
 
     folder "Repositories"
 
@@ -38,6 +42,9 @@ namespace :gen do
     model = args[:repo_and_model_name].split(':').last
 
     raise "repostiory and model name required, example: rake gen:repo_model[Blogs:Blog]" if args[:repo_and_model_name].split(':').count == 1
+
+    verify_file_name repo
+    verify_file_name model
 
     folder "Models"
     
@@ -56,6 +63,8 @@ namespace :gen do
   task :controller, [:name] => :rake_dot_net_initialize do |t, args|
     raise "name parameter required, example: rake gen:controller[Blogs]" if args[:name].nil?
 
+    verify_file_name args[:name]
+
     folder "Controllers"
 
     controller_name = args[:name] + "Controller"
@@ -72,6 +81,9 @@ namespace :gen do
 
     raise "controller and view name required, example: rake gen:view[Home:Index]" if args[:controller_and_view_name].split(':').count == 1
 
+    verify_file_name controller
+    verify_file_name name
+
     folder "Views/#{controller}"
 
     save view_template(name), "#{@mvc_project_directory}/Views/#{controller}/#{name}.cshtml"
@@ -83,6 +95,8 @@ namespace :gen do
   task :script, [:name] => :rake_dot_net_initialize do |t, args|
     raise "js name required, example: rake gen:script[index]" if args[:name].nil?
 
+    verify_file_name args[:name]
+
     folder "Scripts/app"
 
     save js_template(args[:name]), "#{@mvc_project_directory}/Scripts/app/#{args[:name]}.js"
@@ -93,6 +107,8 @@ namespace :gen do
   desc "adds a test file to your test project, example: rake gen:test[describe_BlogsController]"
   task :test, [:name] => :rake_dot_net_initialize do |t, args|
     raise "name parameter required, example: rake gen:test[decribe_HomeController]" if args[:name].nil?
+
+    verify_file_name args[:name]
 
     save test_template(args[:name]), "#{@test_project}/#{args[:name]}.cs"
 
@@ -138,6 +154,10 @@ namespace :gen do
 
   def proj_file
     "#{@mvc_project_directory}/#{@mvc_project_directory}.csproj"
+  end
+
+  def verify_file_name name
+    raise "You cant use #{name} as the name. No spaces or fancy characters please." if name =~ /[\x00\/\\:\*\?\"<>\|]/ || name =~ / /
   end
 
 def model_template name
