@@ -10,6 +10,7 @@ require './RakeDotNet/file_sync.rb'
 require 'net/http'
 require 'yaml'
 require './scaffold.rb'
+require './stacktrace.rb'
 
 task :rake_dot_net_initialize do
   yml = YAML::load File.open("dev.yml")
