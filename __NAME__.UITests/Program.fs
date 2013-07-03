@@ -1,8 +1,8 @@
-﻿open runner
+﻿open canopy
 
-open canopy
+open runner
 
-start "firefox"
+start firefox
 
 let reset _ =
     let seed = new Oak.Controllers.SeedController()
