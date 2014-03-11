@@ -1,5 +1,4 @@
 ﻿open canopy
-
 open runner
 
 start firefox
@@ -10,13 +9,13 @@ let reset _ =
     seed.All() |> ignore
     () 
 
-before(reset)
+context("first test")
+
+//before(reset)
 
 test(fun _ ->
     describe "hello world"
-    url "http://localhost:3000/"
+    url "http://google.com/"
 )
 
 run()
-
-quit()
