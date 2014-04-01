@@ -1,4 +1,5 @@
 ﻿open canopy
+open canopy.types
 open runner
 
 start firefox
